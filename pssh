@@ -1,0 +1,167 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+
+use constant FILE_KNOW_HOSTS => "$ENV{'HOME'}/.ssh/known_hosts";
+use constant STR_SEPARATE => '=' x 60;
+
+use constant SSH_DEFAULT_PORT => 22;
+
+chomp(my $BIN_SSH = `which ssh`);
+chomp(my $BIN_MOSH = `which mosh`);
+
+if (! -e FILE_KNOW_HOSTS)
+{
+    print FILE_KNOW_HOSTS, ' not exists, skip.', "\n";
+    exit 0;
+}
+
+open FR, '<', FILE_KNOW_HOSTS;
+my @c = <FR>;
+close FR;
+chomp(@c);
+
+my @sites = ();
+
+foreach (@c)
+{
+    my $h = (split / /)[0];
+    my @hs = split /,/, $h;
+
+    my ($host, $ip, $port) = ('', '', SSH_DEFAULT_PORT);
+    foreach (@hs)
+    {
+	my $str = $_;
+	if (/\[(.+)\]:(\d+)/)
+	{
+	    $str = $1;
+	    $port = $2;
+	}
+
+	if ($str =~ /(\d+\.){3}\d+/)
+	{ $ip = $str; }
+	else
+	{ $host = $str; }
+    }
+    my %hh = ('host' => $host, 'ip' => $ip, 'port' => $port);
+    push @sites, \%hh;
+}
+my $NUM_CHOICES = @sites;
+
+sub menu_output($)
+{
+    my $error = shift @_;
+
+    system('clear');
+    if ($error ne '')
+    {
+	print $error, "\n";
+    }
+
+    my $i = 0;
+    print STR_SEPARATE, "\n";
+    foreach my $site_hash (@sites)
+    {
+	$i++;
+	my $host = $site_hash->{'host'};
+	$host .= ":$site_hash->{'port'}" if ($site_hash->{'port'} != SSH_DEFAULT_PORT);
+	printf "[\e[36m%2d\e[m] %-36s%s\n", $i, $host, $site_hash->{'ip'};
+    }
+    print STR_SEPARATE, "\n";
+}
+
+sub get_target($)
+{
+    my $hash = shift @_;
+
+    my $target = $hash->{'host'};
+    $target = $hash->{'ip'} if ($target eq '');
+
+    return ($target, $hash->{'port'});
+}
+
+sub try_input_match($)
+{
+    my $try = shift @_;
+
+    foreach my $site_hash (@sites)
+    {
+	if ($site_hash->{'host'} =~ /$try/i)
+	{
+	    return &get_target($site_hash);
+	}
+    }
+    return;
+}
+
+my $error_msg = '';
+
+while (1)
+{
+    &menu_output($error_msg);
+    $error_msg = '';
+
+    my $input = '';
+    while (1)
+    {
+	print "Please input your selection: ";
+	$input = <>;
+
+	if (defined($input))
+	{
+	    chomp($input);
+	    last if ($input ne '');
+	}
+	else
+	{ print "\n"; }
+    }
+
+    my ($target_host, $target_port) = ('', '');
+
+    if ($input =~ /^(q|quit|exit|bye)$/i)
+    {
+	print "bye!\n";
+	exit 0;
+    }
+
+    my $USE_CMD = $BIN_SSH;
+    if ($input =~ /^(\w+)\s/)
+    {
+	my $cmd = $1;
+	if ($cmd =~ /^m(osh)?$/)
+	{
+	    $USE_CMD = $BIN_MOSH;
+	    $input =~ s/^$cmd\s+//;
+	}
+	elsif ($cmd =~ /^s(sh)?$/)
+	{
+	    # $USE_CMD = $BIN_SSH;
+	    $input =~ s/^$cmd\s+//;
+	}
+    }
+
+    if ($input =~ /^[-+]?\d+$/)
+    {
+	if ($input < 0 or $input > $NUM_CHOICES)
+	{
+	    $error_msg = 'Selection out of range.';
+	    next;
+	}
+	($target_host, $target_port) = &get_target($sites[$input - 1]);
+    }
+    else
+    {
+	($target_host, $target_port) = &try_input_match($input);
+	if (!defined($target_host))
+	{
+	    $error_msg = 'Cannot find matched item.';
+	    next;
+	}
+    }
+
+    my $c = $USE_CMD;
+    $c =~ s,.*/,,;
+    print "Trying connection to \e[36m$target_host\e[m with \e[33m$c\e[m ...\n";
+    system $USE_CMD, $target_host, "-p", $target_port;
+}

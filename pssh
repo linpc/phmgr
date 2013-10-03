@@ -162,6 +162,28 @@ while (1)
 
     my $c = $USE_CMD;
     $c =~ s,.*/,,;
+
+    my $extra_args = "";
+    if ($target_port != SSH_DEFAULT_PORT)
+    {
+	if ($c eq 'ssh')
+	{
+	    $extra_args = "-p $target_port";
+	}
+	elsif ($c eq 'mosh')
+	{
+	    $extra_args = "--ssh='ssh -p $target_port'";
+	}
+    }
+
+    print "$USE_CMD $target_host $extra_args\n";
     print "Trying connection to \e[36m$target_host\e[m with \e[33m$c\e[m ...\n";
-    system $USE_CMD, $target_host, "-p", $target_port;
+    if ($extra_args ne '')
+    {
+	system $USE_CMD, $target_host, $extra_args;
+    }
+    else
+    {
+	system $USE_CMD, $target_host;
+    }
 }

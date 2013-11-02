@@ -10,6 +10,7 @@ use constant SSH_DEFAULT_PORT => 22;
 
 chomp(my $BIN_SSH = `which ssh`);
 chomp(my $BIN_MOSH = `which mosh`);
+chomp(my $BIN_PING = `which ping`);
 
 if (! -e FILE_KNOW_HOSTS)
 {
@@ -137,6 +138,11 @@ while (1)
 	elsif ($cmd =~ /^s(sh)?$/)
 	{
 	    # $USE_CMD = $BIN_SSH;
+	    $input =~ s/^$cmd\s+//;
+	}
+	elsif ($cmd =~ /^p(ing)?$/)
+	{
+	    $USE_CMD = $BIN_PING;
 	    $input =~ s/^$cmd\s+//;
 	}
     }

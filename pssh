@@ -27,6 +27,7 @@ my @sites = ();
 
 foreach (@c)
 {
+    next if /^#/;
     my $h = (split / /)[0];
     my @hs = split /,/, $h;
 

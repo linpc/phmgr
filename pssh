@@ -11,6 +11,7 @@ use constant SSH_DEFAULT_PORT => 22;
 chomp(my $BIN_SSH = `which ssh`);
 chomp(my $BIN_MOSH = `which mosh`);
 chomp(my $BIN_PING = `which ping`);
+chomp(my $BIN_SCP = `which scp`);
 
 if (! -e FILE_KNOW_HOSTS)
 {
@@ -131,21 +132,19 @@ while (1)
     if ($input =~ /^(\w+)\s/)
     {
 	my $cmd = $1;
+
 	if ($cmd =~ /^m(osh)?$/)
-	{
-	    $USE_CMD = $BIN_MOSH;
-	    $input =~ s/^$cmd\s+//;
-	}
+	{ $USE_CMD = $BIN_MOSH; }
 	elsif ($cmd =~ /^s(sh)?$/)
 	{
 	    # $USE_CMD = $BIN_SSH;
-	    $input =~ s/^$cmd\s+//;
 	}
 	elsif ($cmd =~ /^p(ing)?$/)
-	{
-	    $USE_CMD = $BIN_PING;
-	    $input =~ s/^$cmd\s+//;
-	}
+	{ $USE_CMD = $BIN_PING; }
+	elsif ($cmd =~ /^scp$/)
+	{ $USE_CMD = $BIN_SCP; }
+
+	$input =~ s/^$cmd\s+//;
     }
 
     if ($input =~ /^[-+]?\d+$/)
@@ -168,7 +167,7 @@ while (1)
     }
 
     my $c = $USE_CMD;
-    $c =~ s,.*/,,;
+    $c =~ s,.*/,,;	# basename of CMD
 
     my $extra_args = "";
     if ($target_port != SSH_DEFAULT_PORT)
@@ -181,10 +180,53 @@ while (1)
 	{
 	    $extra_args = "--ssh='ssh -p $target_port'";
 	}
+	elsif ($c eq 'scp')
+	{
+	    $extra_args = "-P $target_port";
+	}
     }
 
     print "Trying connection to \e[36m$target_host\e[m with \e[33m$c\e[m ...\n";
-    if ($extra_args ne '')
+    if ($c eq 'scp')
+    {
+	print "  * Use scp, please provide target >> ";
+	my $target = <>;
+	chomp $target;
+
+	if ($target =~ /^(-r\s+)/)
+	{
+	    $extra_args .= ($extra_args eq '') ? '-r' :  ' -r';
+	    $target =~ s/^$1//;
+	}
+	$target =~ s/(^\s+|\s+$)//g;
+
+	if ($target =~ /([^ ]+)\s+([^ ]+)$/) {
+	    my ($src, $dst) = ($1, $2);
+	    if ($src =~ /^:/ and ! ($dst =~ /^:/))
+	    {
+		$src = "${target_host}${src}";
+	    }
+	    elsif ($dst =~ /^:/ and ! ($src =~ /^:/))
+	    {
+		$dst = "${target_host}${dst}";
+	    }
+	    else {
+		$error_msg = "Error format";
+		next;
+	    }
+
+	    if ($extra_args ne '')
+	    {
+		system $USE_CMD, $extra_args, $src, $dst
+	    }
+	    else
+	    {
+		system $USE_CMD, $src, $dst;
+	    }
+	    exit 0;
+	}
+    }
+    elsif ($extra_args ne '')
     {
 	system $USE_CMD, $target_host, $extra_args;
     }

@@ -13,90 +13,23 @@ chomp(my $BIN_MOSH = `which mosh`);
 chomp(my $BIN_PING = `which ping`);
 chomp(my $BIN_SCP = `which scp`);
 
+#############################################
+# parse known_hosts
+#############################################
+
 if (! -e FILE_KNOW_HOSTS)
 {
     print FILE_KNOW_HOSTS, ' not exists, skip.', "\n";
     exit 0;
 }
 
-open FR, '<', FILE_KNOW_HOSTS;
-my @c = <FR>;
-close FR;
-chomp(@c);
-
-my @sites = ();
-
-foreach (@c)
-{
-    next if /^#/;
-    my $h = (split / /)[0];
-    my @hs = split /,/, $h;
-
-    my ($host, $ip, $port) = ('', '', SSH_DEFAULT_PORT);
-    foreach (@hs)
-    {
-	my $str = $_;
-	if (/\[(.+)\]:(\d+)/)
-	{
-	    $str = $1;
-	    $port = $2;
-	}
-
-	if ($str =~ /(\d+\.){3}\d+/)
-	{ $ip = $str; }
-	else
-	{ $host = $str; }
-    }
-    my %hh = ('host' => $host, 'ip' => $ip, 'port' => $port);
-    push @sites, \%hh;
-}
+our @sites = ();
+&parse_known_hosts();
 my $NUM_CHOICES = @sites;
 
-sub menu_output($)
-{
-    my $error = shift @_;
-
-    system('clear');
-    if ($error ne '')
-    {
-	print $error, "\n";
-    }
-
-    my $i = 0;
-    print STR_SEPARATE, "\n";
-    foreach my $site_hash (@sites)
-    {
-	$i++;
-	my $host = $site_hash->{'host'};
-	$host .= ":$site_hash->{'port'}" if ($site_hash->{'port'} != SSH_DEFAULT_PORT);
-	printf "[\e[36m%2d\e[m] %-36s%s\n", $i, $host, $site_hash->{'ip'};
-    }
-    print STR_SEPARATE, "\n";
-}
-
-sub get_target($)
-{
-    my $hash = shift @_;
-
-    my $target = $hash->{'host'};
-    $target = $hash->{'ip'} if ($target eq '');
-
-    return ($target, $hash->{'port'});
-}
-
-sub try_input_match($)
-{
-    my $try = shift @_;
-
-    foreach my $site_hash (@sites)
-    {
-	if ($site_hash->{'host'} =~ /$try/i)
-	{
-	    return &get_target($site_hash);
-	}
-    }
-    return;
-}
+#############################################
+# main rountine
+#############################################
 
 my $error_msg = '';
 
@@ -234,4 +167,88 @@ while (1)
     {
 	system $USE_CMD, $target_host;
     }
+}
+
+exit 0;
+
+#############################################
+# sub routine
+#############################################
+
+sub parse_known_hosts()
+{
+    open FR, '<', FILE_KNOW_HOSTS;
+    my @c = <FR>;
+    close FR;
+    chomp(@c);
+
+    foreach (@c)
+    {
+	next if /^#/;
+	my @hs = split /,/, (split / /)[0];
+
+	my ($host, $ip, $port) = ('', '', SSH_DEFAULT_PORT);
+	foreach (@hs)
+	{
+	    my $str = $_;
+	    if (/\[(.+)\]:(\d+)/)
+	    {
+		$str = $1;
+		$port = $2;
+	    }
+
+	    if ($str =~ /(\d+\.){3}\d+/)
+	    { $ip = $str; }
+	    else
+	    { $host = $str; }
+	}
+	my %hh = ('host' => $host, 'ip' => $ip, 'port' => $port);
+	push @sites, \%hh;
+    }
+}
+
+sub menu_output($)
+{
+    my $error = shift @_;
+
+    system('clear');
+    if ($error ne '')
+    {
+	print $error, "\n";
+    }
+
+    my $i = 0;
+    print STR_SEPARATE, "\n";
+    foreach my $site_hash (@sites)
+    {
+	$i++;
+	my $host = $site_hash->{'host'};
+	$host .= ":$site_hash->{'port'}" if ($site_hash->{'port'} != SSH_DEFAULT_PORT);
+	printf "[\e[36m%2d\e[m] %-36s%s\n", $i, $host, $site_hash->{'ip'};
+    }
+    print STR_SEPARATE, "\n";
+}
+
+sub get_target($)
+{
+    my $hash = shift @_;
+
+    my $target = $hash->{'host'};
+    $target = $hash->{'ip'} if ($target eq '');
+
+    return ($target, $hash->{'port'});
+}
+
+sub try_input_match($)
+{
+    my $try = shift @_;
+
+    foreach my $site_hash (@sites)
+    {
+	if ($site_hash->{'host'} =~ /$try/i)
+	{
+	    return &get_target($site_hash);
+	}
+    }
+    return;
 }

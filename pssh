@@ -3,7 +3,7 @@
 use warnings;
 use strict;
 
-use YAML::Syck;
+#use YAML::Syck;
 use Data::Dumper;
 use YAML::Tiny;
 
@@ -22,8 +22,7 @@ chomp(my $BIN_SCP = `which scp`);
 # parse known_hosts
 #############################################
 
-if (! -e FILE_KNOW_HOSTS)
-{
+if (! -e FILE_KNOW_HOSTS) {
     print FILE_KNOW_HOSTS, ' not exists, skip.', "\n";
     exit 0;
 }
@@ -57,67 +56,61 @@ if (-e FILE_PSSH_CONFIG) {
 
 my $error_msg = '';
 
-while (1)
-{
+while (1) {
     &menu_output($error_msg);
     $error_msg = '';
 
     my $input = '';
-    while (1)
-    {
+    while (1) {
 	print "Please input your selection: ";
 	$input = <>;
 
-	if (defined($input))
-	{
+	if (defined($input)) {
 	    chomp($input);
 	    last if ($input ne '');
 	}
-	else
-	{ print "\n"; }
+	else {
+	    print "\n";
+	}
     }
 
     my ($target_host, $target_port) = ('', '');
 
-    if ($input =~ /^(q|quit|exit|bye)$/i)
-    {
+    if ($input =~ /^(q|quit|exit|bye)$/i) {
 	print "bye!\n";
 	exit 0;
     }
 
     my $USE_CMD = $BIN_SSH;
-    if ($input =~ /^(\w+)\s/)
-    {
+    if ($input =~ /^(\w+)\s/) {
 	my $cmd = $1;
 
-	if ($cmd =~ /^m(osh)?$/)
-	{ $USE_CMD = $BIN_MOSH; }
-	elsif ($cmd =~ /^s(sh)?$/)
-	{
+	if ($cmd =~ /^m(osh)?$/) {
+	    $USE_CMD = $BIN_MOSH;
+	}
+	elsif ($cmd =~ /^s(sh)?$/) {
 	    # $USE_CMD = $BIN_SSH;
 	}
-	elsif ($cmd =~ /^p(ing)?$/)
-	{ $USE_CMD = $BIN_PING; }
-	elsif ($cmd =~ /^scp$/)
-	{ $USE_CMD = $BIN_SCP; }
+	elsif ($cmd =~ /^p(ing)?$/) {
+	    $USE_CMD = $BIN_PING;
+	}
+	elsif ($cmd =~ /^scp$/) {
+	    $USE_CMD = $BIN_SCP;
+	}
 
 	$input =~ s/^$cmd\s+//;
     }
 
-    if ($input =~ /^[-+]?\d+$/)
-    {
-	if ($input < 0 or $input > $NUM_CHOICES)
-	{
+    if ($input =~ /^[-+]?\d+$/) {
+	if ($input < 0 or $input > $NUM_CHOICES) {
 	    $error_msg = 'Selection out of range.';
 	    next;
 	}
 	($target_host, $target_port) = &get_target($sites[$input - 1]);
     }
-    else
-    {
+    else {
 	($target_host, $target_port) = &try_input_match($input);
-	if (!defined($target_host))
-	{
+	if (!defined($target_host)) {
 	    $error_msg = 'Cannot find matched item.';
 	    next;
 	}
@@ -127,31 +120,25 @@ while (1)
     $c =~ s,.*/,,;	# basename of CMD
 
     my $extra_args = "";
-    if ($target_port != SSH_DEFAULT_PORT)
-    {
-	if ($c eq 'ssh')
-	{
+    if ($target_port != SSH_DEFAULT_PORT) {
+	if ($c eq 'ssh') {
 	    $extra_args = "-p $target_port";
 	}
-	elsif ($c eq 'mosh')
-	{
+	elsif ($c eq 'mosh') {
 	    $extra_args = "--ssh='ssh -p $target_port'";
 	}
-	elsif ($c eq 'scp')
-	{
+	elsif ($c eq 'scp') {
 	    $extra_args = "-P $target_port";
 	}
     }
 
     print "Trying connection to \e[36m$target_host\e[m with \e[33m$c\e[m ...\n";
-    if ($c eq 'scp')
-    {
+    if ($c eq 'scp') {
 	print "  * Use scp, please provide target >> ";
 	my $target = <>;
 	chomp $target;
 
-	if ($target =~ /^(-r\s+)/)
-	{
+	if ($target =~ /^(-r\s+)/) {
 	    $extra_args .= ($extra_args eq '') ? '-r' :  ' -r';
 	    $target =~ s/^$1//;
 	}
@@ -159,6 +146,7 @@ while (1)
 
 	if ($target =~ /([^ ]+)\s+([^ ]+)$/) {
 	    my ($src, $dst) = ($1, $2);
+
 	    if ($src =~ /^:/ and ! ($dst =~ /^:/))
 	    {
 		$src = "${target_host}${src}";
@@ -172,23 +160,19 @@ while (1)
 		next;
 	    }
 
-	    if ($extra_args ne '')
-	    {
+	    if ($extra_args ne '') {
 		system $USE_CMD, $extra_args, $src, $dst
 	    }
-	    else
-	    {
+	    else {
 		system $USE_CMD, $src, $dst;
 	    }
 	    exit 0;
 	}
     }
-    elsif ($extra_args ne '')
-    {
+    elsif ($extra_args ne '') {
 	system $USE_CMD, $target_host, $extra_args;
     }
-    else
-    {
+    else {
 	system $USE_CMD, $target_host;
     }
 }
@@ -299,14 +283,12 @@ sub parse_known_hosts()
     close FR;
     chomp(@c);
 
-    foreach (@c)
-    {
+    foreach (@c) {
 	next if /^#/;
 	my @hs = split /,/, (split / /)[0];
 
 	my ($host, $ip, $port) = ('', '', SSH_DEFAULT_PORT);
-	foreach (@hs)
-	{
+	foreach (@hs) {
 	    my $str = $_;
 	    if (/\[(.+)\]:(\d+)/)
 	    {
@@ -314,10 +296,12 @@ sub parse_known_hosts()
 		$port = $2;
 	    }
 
-	    if ($str =~ /(\d+\.){3}\d+/)
-	    { $ip = $str; }
-	    else
-	    { $host = $str; }
+	    if ($str =~ /(\d+\.){3}\d+/) {
+		$ip = $str;
+	    }
+	    else {
+		$host = $str;
+	    }
 	}
 	my %hh = ('host' => $host, 'ip' => $ip, 'port' => $port);
 	push @sites, \%hh;
@@ -332,8 +316,7 @@ sub menu_output($)
     my $pssh_classes = $pssh_config->{classes};
 
     system('clear');
-    if ($error ne '')
-    {
+    if ($error ne '') {
 	print $error, "\n";
     }
 
@@ -381,10 +364,8 @@ sub try_input_match($)
 {
     my $try = shift @_;
 
-    foreach my $site_hash (@sites)
-    {
-	if ($site_hash->{'host'} =~ /$try/i)
-	{
+    foreach my $site_hash (@sites) {
+	if ($site_hash->{'host'} =~ /$try/i) {
 	    return &get_target($site_hash);
 	}
     }

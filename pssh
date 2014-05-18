@@ -3,7 +3,12 @@
 use warnings;
 use strict;
 
+use YAML::Syck;
+use Data::Dumper;
+use YAML::Tiny;
+
 use constant FILE_KNOW_HOSTS => "$ENV{'HOME'}/.ssh/known_hosts";
+use constant FILE_PSSH_CONFIG => "$ENV{'HOME'}/.ssh/pssh_config";
 use constant STR_SEPARATE => '=' x 60;
 
 use constant SSH_DEFAULT_PORT => 22;
@@ -25,7 +30,26 @@ if (! -e FILE_KNOW_HOSTS)
 
 our @sites = ();
 &parse_known_hosts();
-my $NUM_CHOICES = @sites;
+#my $NUM_CHOICES = @sites;
+our $NUM_CHOICES;
+
+#############################################
+# read pssh_config
+#############################################
+
+our $pssh_config = undef;
+our @pssh_menu = ();
+our @pssh_noclass_sites = ();
+
+if (-e FILE_PSSH_CONFIG) {
+    &config_parse();
+}
+
+#############################################
+# classify @sites
+#############################################
+
+&classify_sites();
 
 #############################################
 # main rountine
@@ -175,6 +199,99 @@ exit 0;
 # sub routine
 #############################################
 
+sub test_fill_class($)
+{
+    my ($test, $method, $class_name) = @_;
+
+    if ($method eq 'host') {
+	foreach my $shash (@sites) {
+	    next if (exists($shash->{classes}) and exists($shash->{classes}->{$class_name}));
+	    if ($test eq $shash->{host} or $test eq $shash->{ip}) {
+		# reference modification
+		$shash->{classes}->{$class_name} = 1;
+	    }
+	}
+    }
+    elsif ($method eq 'regexp') {
+	my $regexp = qr/$test/i;
+	foreach my $shash (@sites) {
+	    next if (exists($shash->{classes}) and exists($shash->{classes}->{$class_name}));
+	    if ($shash->{host} =~ $regexp or $shash->{ip} =~ $regexp) {
+		# reference modification
+		$shash->{classes}->{$class_name} = 1;
+	    }
+	}
+    }
+}
+
+sub classify_sites()
+{
+    # for readability
+    my $pssh_classes = $pssh_config->{classes};
+
+    foreach (@$pssh_classes) {
+	next if (!exists($_->{class}));
+
+	my $class_name = $_->{class};
+
+	if (exists($_->{host})) {
+	    foreach (@{$_->{host}}) {
+		&test_fill_class($_, 'host', $class_name);
+	    }
+	}
+
+	if (exists($_->{regexp})) {
+	    foreach (@{$_->{regexp}}) {
+		&test_fill_class($_, 'regexp', $class_name);
+	    }
+	}
+
+	my @index = grep { exists($sites[$_]->{classes}->{$class_name}) } keys @sites;
+	$_->{index} = \@index;
+	$_->{count} = scalar @index;
+    }
+
+    # collect valid classes
+    foreach (keys @$pssh_classes) {
+	next if (!exists($pssh_classes->[$_]->{class}) or $pssh_classes->[$_]->{count} == 0);
+	#print Dumper($pssh_classes->[$_]);
+	push @pssh_menu, $_;
+    }
+
+    # collect un-classfied sites
+    foreach (keys @sites) {
+	next if (%{$sites[$_]->{classes}});
+	push @pssh_noclass_sites, $_;
+    }
+
+    #print Dumper(@sites);
+    #print Dumper($pssh_config);
+    #print Dumper(@pssh_menu);
+    #print Dumper(@pssh_noclass_sites);
+}
+
+sub config_parse()
+{
+    # pclin.140516:
+    #  the primary reason we use list (instead of hash) in classes is,
+    #  user can arrange the listing orders as they can see on menu
+
+    # use YAML::Syck
+    #$pssh_config = LoadFile(FILE_PSSH_CONFIG);
+
+    # use YAML::Tiny
+    $pssh_config = (YAML::Tiny->read(FILE_PSSH_CONFIG))->[0];#->{classes};
+#    print Dumper($pssh_config);
+
+#    exit;
+    foreach (keys @{$pssh_config->{classes}}) {
+	if (!exists($pssh_config->{classes}->[$_]->{class})) {
+	    # empty element, but still exists
+	    delete $pssh_config->{classes}->[$_];
+	}
+    }
+}
+
 sub parse_known_hosts()
 {
     open FR, '<', FILE_KNOW_HOSTS;
@@ -211,6 +328,9 @@ sub menu_output($)
 {
     my $error = shift @_;
 
+    # for readability
+    my $pssh_classes = $pssh_config->{classes};
+
     system('clear');
     if ($error ne '')
     {
@@ -219,13 +339,31 @@ sub menu_output($)
 
     my $i = 0;
     print STR_SEPARATE, "\n";
-    foreach my $site_hash (@sites)
-    {
+
+    foreach (@pssh_menu) {
 	$i++;
-	my $host = $site_hash->{'host'};
-	$host .= ":$site_hash->{'port'}" if ($site_hash->{'port'} != SSH_DEFAULT_PORT);
-	printf "[\e[36m%2d\e[m] %-36s%s\n", $i, $host, $site_hash->{'ip'};
+	printf "[\e[36m%2d\e[m] \e[1;33m%-35s \e[36m[%d]\e[m\n", $i, $pssh_classes->[$_]->{class}, $pssh_classes->[$_]->{count};
     }
+
+    foreach (@pssh_noclass_sites) {
+	$i++;
+	my $host = $sites[$_]->{'host'};
+	$host .= ":$sites[$_]->{'port'}" if ($sites[$_]->{'port'} != SSH_DEFAULT_PORT);
+	printf "[\e[36m%2d\e[m] %-36s%s\n", $i, $host, $sites[$_]->{'ip'};
+    }
+
+    # reset menu items counting
+    $NUM_CHOICES = $i;
+
+    ## pclin.140517:
+    ##   maybe put config here: want to see those hosts already have class in 1st level menu?
+    #foreach my $site_hash (@sites)
+    #{
+    #    $i++;
+    #    my $host = $site_hash->{'host'};
+    #    $host .= ":$site_hash->{'port'}" if ($site_hash->{'port'} != SSH_DEFAULT_PORT);
+    #    printf "[\e[36m%2d\e[m] %-36s%s\n", $i, $host, $site_hash->{'ip'};
+    #}
     print STR_SEPARATE, "\n";
 }
 

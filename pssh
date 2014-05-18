@@ -131,7 +131,7 @@ sub main()
 		push @extra_args, "-p $target_port";
 	    }
 	    elsif ($c eq 'mosh') {
-		push @extra_args, "--ssh='ssh -p $target_port'";
+		push @extra_args, "--ssh=ssh -p $target_port";
 	    }
 	    elsif ($c eq 'scp') {
 		push @extra_args, "-P $target_port";

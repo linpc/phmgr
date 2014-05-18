@@ -54,100 +54,105 @@ if (-e FILE_PSSH_CONFIG) {
 # main rountine
 #############################################
 
-my $error_msg = '';
-
-while (1) {
-    &menu_output($error_msg);
-    $error_msg = '';
-
-    my $input = '';
-    while (1) {
-	print "Please input your selection: ";
-	$input = <>;
-
-	if (defined($input)) {
-	    chomp($input);
-	    last if ($input ne '');
-	}
-	else {
-	    print "\n";
-	}
-    }
-
-    my ($target_host, $target_port) = ('', '');
-
-    if ($input =~ /^(q|quit|exit|bye)$/i) {
-	print "bye!\n";
-	exit 0;
-    }
-
-    my $USE_CMD = $BIN_SSH;
-    if ($input =~ /^(\w+)\s/) {
-	my $cmd = $1;
-
-	if ($cmd =~ /^m(osh)?$/) {
-	    $USE_CMD = $BIN_MOSH;
-	}
-	elsif ($cmd =~ /^s(sh)?$/) {
-	    # $USE_CMD = $BIN_SSH;
-	}
-	elsif ($cmd =~ /^p(ing)?$/) {
-	    $USE_CMD = $BIN_PING;
-	}
-	elsif ($cmd =~ /^scp$/) {
-	    $USE_CMD = $BIN_SCP;
-	}
-
-	$input =~ s/^$cmd\s+//;
-    }
-
-    if ($input =~ /^[-+]?\d+$/) {
-	if ($input < 0 or $input > $NUM_CHOICES) {
-	    $error_msg = 'Selection out of range.';
-	    next;
-	}
-	($target_host, $target_port) = &get_target($sites[$input - 1]);
-    }
-    else {
-	($target_host, $target_port) = &try_input_match($input);
-	if (!defined($target_host)) {
-	    $error_msg = 'Cannot find matched item.';
-	    next;
-	}
-    }
-
-    my $c = $USE_CMD;
-    $c =~ s,.*/,,;	# basename of CMD
-
-    my @extra_args = ();
-    if ($target_port != SSH_DEFAULT_PORT) {
-	if ($c eq 'ssh') {
-	    push @extra_args, "-p $target_port";
-	}
-	elsif ($c eq 'mosh') {
-	    push @extra_args, "--ssh='ssh -p $target_port'";
-	}
-	elsif ($c eq 'scp') {
-	    push @extra_args, "-P $target_port";
-	}
-    }
-
-    print "Trying connection to \e[36m$target_host\e[m with \e[33m$c\e[m ...\n";
-    if ($c eq 'scp') {
-	my $ret;
-	($ret, $error_msg) = &spawn_scp($USE_CMD, $target_host, @extra_args);
-	exit 0 unless ($ret != 0);
-	next;
-    }
-    elsif (@extra_args) {
-	system $USE_CMD, $target_host, @extra_args;
-    }
-    else {
-	system $USE_CMD, $target_host;
-    }
-}
+&main();
 
 exit 0;
+
+sub main()
+{
+    my $error_msg = '';
+
+    while (1) {
+	&menu_output($error_msg);
+	$error_msg = '';
+
+	my $input = '';
+	while (1) {
+	    print "Please input your selection: ";
+	    $input = <>;
+
+	    if (defined($input)) {
+		chomp($input);
+		last if ($input ne '');
+	    }
+	    else {
+		print "\n";
+	    }
+	}
+
+	if ($input =~ /^(q|quit|exit|bye)$/i) {
+	    print "\e[1;31mbye!\e[m\n";
+	    exit 0;
+	}
+
+	my $USE_CMD = $BIN_SSH;
+	if ($input =~ /^(\w+)\s/) {
+	    my $cmd = $1;
+
+	    if ($cmd =~ /^m(osh)?$/) {
+		$USE_CMD = $BIN_MOSH;
+	    }
+	    elsif ($cmd =~ /^s(sh)?$/) {
+		# $USE_CMD = $BIN_SSH;
+	    }
+	    elsif ($cmd =~ /^p(ing)?$/) {
+		$USE_CMD = $BIN_PING;
+	    }
+	    elsif ($cmd =~ /^scp$/) {
+		$USE_CMD = $BIN_SCP;
+	    }
+
+	    $input =~ s/^$cmd\s+//;
+	}
+
+	my ($target_host, $target_port) = ('', '');
+
+	if ($input =~ /^[-+]?\d+$/) {
+	    if ($input < 0 or $input > $NUM_CHOICES) {
+		$error_msg = 'Selection out of range.';
+		next;
+	    }
+	    ($target_host, $target_port) = &get_target($sites[$input - 1]);
+	}
+	else {
+	    ($target_host, $target_port) = &try_input_match($input);
+	    if (!defined($target_host)) {
+		$error_msg = 'Cannot find matched item.';
+		next;
+	    }
+	}
+
+	my $c = $USE_CMD;
+	$c =~ s,.*/,,;	# basename of CMD
+
+	my @extra_args = ();
+	if ($target_port != SSH_DEFAULT_PORT) {
+	    if ($c eq 'ssh') {
+		push @extra_args, "-p $target_port";
+	    }
+	    elsif ($c eq 'mosh') {
+		push @extra_args, "--ssh='ssh -p $target_port'";
+	    }
+	    elsif ($c eq 'scp') {
+		push @extra_args, "-P $target_port";
+	    }
+	}
+
+	print "Trying connection to \e[36m$target_host\e[m with \e[33m$c\e[m ...\n";
+	if ($c eq 'scp') {
+	    my $ret;
+	    ($ret, $error_msg) = &spawn_scp($USE_CMD, $target_host, @extra_args);
+	    exit 0 unless ($ret != 0);
+	    next;
+	}
+	elsif (@extra_args) {
+	    system $USE_CMD, $target_host, @extra_args;
+	}
+	else {
+	    system $USE_CMD, $target_host;
+	}
+    }
+}
 
 #############################################
 # sub routine

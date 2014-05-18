@@ -119,58 +119,28 @@ while (1) {
     my $c = $USE_CMD;
     $c =~ s,.*/,,;	# basename of CMD
 
-    my $extra_args = "";
+    my @extra_args = ();
     if ($target_port != SSH_DEFAULT_PORT) {
 	if ($c eq 'ssh') {
-	    $extra_args = "-p $target_port";
+	    push @extra_args, "-p $target_port";
 	}
 	elsif ($c eq 'mosh') {
-	    $extra_args = "--ssh='ssh -p $target_port'";
+	    push @extra_args, "--ssh='ssh -p $target_port'";
 	}
 	elsif ($c eq 'scp') {
-	    $extra_args = "-P $target_port";
+	    push @extra_args, "-P $target_port";
 	}
     }
 
     print "Trying connection to \e[36m$target_host\e[m with \e[33m$c\e[m ...\n";
     if ($c eq 'scp') {
-	print "  * Use scp, please provide target >> ";
-	my $target = <>;
-	chomp $target;
-
-	if ($target =~ /^(-r\s+)/) {
-	    $extra_args .= ($extra_args eq '') ? '-r' :  ' -r';
-	    $target =~ s/^$1//;
-	}
-	$target =~ s/(^\s+|\s+$)//g;
-
-	if ($target =~ /([^ ]+)\s+([^ ]+)$/) {
-	    my ($src, $dst) = ($1, $2);
-
-	    if ($src =~ /^:/ and ! ($dst =~ /^:/))
-	    {
-		$src = "${target_host}${src}";
-	    }
-	    elsif ($dst =~ /^:/ and ! ($src =~ /^:/))
-	    {
-		$dst = "${target_host}${dst}";
-	    }
-	    else {
-		$error_msg = "Error format";
-		next;
-	    }
-
-	    if ($extra_args ne '') {
-		system $USE_CMD, $extra_args, $src, $dst
-	    }
-	    else {
-		system $USE_CMD, $src, $dst;
-	    }
-	    exit 0;
-	}
+	my $ret;
+	($ret, $error_msg) = &spawn_scp($USE_CMD, $target_host, @extra_args);
+	exit 0 unless ($ret != 0);
+	next;
     }
-    elsif ($extra_args ne '') {
-	system $USE_CMD, $target_host, $extra_args;
+    elsif (@extra_args) {
+	system $USE_CMD, $target_host, @extra_args;
     }
     else {
 	system $USE_CMD, $target_host;
@@ -182,6 +152,44 @@ exit 0;
 #############################################
 # sub routine
 #############################################
+
+sub spawn_scp($)
+{
+    my ($scp_cmd, $remote_host, @extra_args) = @_;
+    my $error = undef;
+
+    print "  * Use scp, please provide target >> ";
+    my $target = <>;
+    chomp $target;
+
+    if ($target =~ /^(-r\s+)/) {
+	push @extra_args, '-r';
+	$target =~ s/^$1//;
+    }
+
+    if ($target =~ /([^ ]+)\s+([^ ]+)$/) {
+	my ($src, $dst) = ($1, $2);
+
+	if ($src =~ /^:/ and ! ($dst =~ /^:/)) {
+	    $src = "${remote_host}${src}";
+	}
+	elsif ($dst =~ /^:/ and ! ($src =~ /^:/)) {
+	    $dst = "${remote_host}${dst}";
+	}
+	else {
+	    $error = "Error format";
+	    return (1, $error);
+	}
+
+	if (@extra_args) {
+	    system $scp_cmd, @extra_args, $src, $dst
+	}
+	else {
+	    system $scp_cmd, $src, $dst;
+	}
+	return (0, $error);
+    }
+}
 
 sub test_fill_class($)
 {

@@ -61,49 +61,18 @@ exit 0;
 sub main()
 {
     my $error_msg = '';
+    my $ret;	# used for save subroutine return value and check
 
     while (1) {
 	&menu_output($error_msg);
 	$error_msg = '';
 
-	my $input = '';
-	while (1) {
-	    print "Please input your selection: ";
-	    $input = <>;
+	my $input;
+	($ret, $input) = &user_input();
+	exit 0 if ($ret != 0);
 
-	    if (defined($input)) {
-		chomp($input);
-		last if ($input ne '');
-	    }
-	    else {
-		print "\n";
-	    }
-	}
-
-	if ($input =~ /^(q|quit|exit|bye)$/i) {
-	    print "\e[1;31mbye!\e[m\n";
-	    exit 0;
-	}
-
-	my $USE_CMD = $BIN_SSH;
-	if ($input =~ /^(\w+)\s/) {
-	    my $cmd = $1;
-
-	    if ($cmd =~ /^m(osh)?$/) {
-		$USE_CMD = $BIN_MOSH;
-	    }
-	    elsif ($cmd =~ /^s(sh)?$/) {
-		# $USE_CMD = $BIN_SSH;
-	    }
-	    elsif ($cmd =~ /^p(ing)?$/) {
-		$USE_CMD = $BIN_PING;
-	    }
-	    elsif ($cmd =~ /^scp$/) {
-		$USE_CMD = $BIN_SCP;
-	    }
-
-	    $input =~ s/^$cmd\s+//;
-	}
+	my $USE_CMD;
+	($USE_CMD, $input) = &parse_cmd($input);
 
 	my ($target_host, $target_port) = ('', '');
 
@@ -140,7 +109,6 @@ sub main()
 
 	print "Trying connection to \e[36m$target_host\e[m with \e[33m$c\e[m ...\n";
 	if ($c eq 'scp') {
-	    my $ret;
 	    ($ret, $error_msg) = &spawn_scp($USE_CMD, $target_host, @extra_args);
 	    exit 0 unless ($ret != 0);
 	    next;
@@ -157,6 +125,58 @@ sub main()
 #############################################
 # sub routine
 #############################################
+
+sub user_input($)
+{
+    my ($code, $input) = (0, undef);
+
+    while (1) {
+	print "Please input your selection: ";
+	$input = <>;
+
+	if (defined($input)) {
+	    chomp($input);
+	    last if ($input ne '');
+	}
+	else {
+	    print "\n";
+	}
+    }
+
+    if ($input =~ /^(q|quit|exit|bye)$/i) {
+	print "\e[1;31mbye!\e[m\n";
+	$code = 1;
+    }
+
+    return ($code, $input);
+}
+
+sub parse_cmd($)
+{
+    my $input = shift @_;
+    my $spawn = $BIN_SSH;
+
+    if ($input =~ /^(\w+)\s/) {
+	my $cmd = $1;
+
+	if ($cmd =~ /^m(osh)?$/) {
+	    $spawn = $BIN_MOSH;
+	}
+	elsif ($cmd =~ /^s(sh)?$/) {
+	    # $spawn = $BIN_SSH;
+	}
+	elsif ($cmd =~ /^p(ing)?$/) {
+	    $spawn = $BIN_PING;
+	}
+	elsif ($cmd =~ /^scp$/) {
+	    $spawn = $BIN_SCP;
+	}
+
+	$input =~ s/^$cmd\s+//;
+    }
+
+    return ($spawn, $input);
+}
 
 sub spawn_scp($)
 {

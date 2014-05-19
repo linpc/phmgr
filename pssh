@@ -111,7 +111,7 @@ sub main()
 	if ($c eq 'scp') {
 	    ($ret, $error_msg) = &spawn_scp($USE_CMD, $target_host, @extra_args);
 	    exit 0 unless ($ret != 0);
-	    next;
+	    # others go next;
 	}
 	elsif (@extra_args) {
 	    system $USE_CMD, $target_host, @extra_args;

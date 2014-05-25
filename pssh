@@ -154,26 +154,19 @@ sub user_input($)
 sub parse_cmd($)
 {
     my $input = shift @_;
-    my $spawn = $BIN_SSH;
+    my $spawn = do {
+	if ($input =~ /^(\w+)\s/) {
+	    my $cmd = $1;
+	    $input =~ s/^$cmd\s+//;
 
-    if ($input =~ /^(\w+)\s/) {
-	my $cmd = $1;
-
-	if ($cmd =~ /^m(osh)?$/) {
-	    $spawn = $BIN_MOSH;
+	    if ($cmd =~ /^m(osh)?$/)	{ $BIN_MOSH }
+	    #elsif ($cmd =~ /^s(sh)?$/) { $BIN_SSH }
+	    elsif ($cmd =~ /^p(ing)?$/) { $BIN_PING }
+	    elsif ($cmd =~ /^scp$/)	{ $BIN_SCP }
+	    else			{ $BIN_SSH }
 	}
-	elsif ($cmd =~ /^s(sh)?$/) {
-	    # $spawn = $BIN_SSH;
-	}
-	elsif ($cmd =~ /^p(ing)?$/) {
-	    $spawn = $BIN_PING;
-	}
-	elsif ($cmd =~ /^scp$/) {
-	    $spawn = $BIN_SCP;
-	}
-
-	$input =~ s/^$cmd\s+//;
-    }
+	else	{ $BIN_SSH }
+    };
 
     return ($spawn, $input);
 }

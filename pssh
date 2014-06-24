@@ -18,6 +18,16 @@ chomp(my $BIN_MOSH = `which mosh`);
 chomp(my $BIN_PING = `which ping`);
 chomp(my $BIN_SCP = `which scp`);
 
+
+#############################################
+# global variables
+#############################################
+
+our @sites = ();
+our $pssh_config = undef;
+our @pssh_menu = ();
+our @pssh_noclass_sites = ();
+
 #############################################
 # parse known_hosts
 #############################################
@@ -27,18 +37,12 @@ if (! -e FILE_KNOW_HOSTS) {
     exit 0;
 }
 
-our @sites = ();
 &parse_known_hosts();
-#my $NUM_CHOICES = @sites;
-#our $NUM_CHOICES;
 
 #############################################
 # read pssh_config
 #############################################
 
-our $pssh_config = undef;
-our @pssh_menu = ();
-our @pssh_noclass_sites = ();
 
 if (-e FILE_PSSH_CONFIG) {
     &config_parse();

@@ -55,7 +55,7 @@ sub user_input()
         print "\e[1;31mbye!\e[m\n";
         $code = 1;
     }
-    elsif ($input eq 'qq') {
+    elsif ($input =~ /^(qq|\.\.\/?)$/) {
         $input = undef;
         $code = 2;
     }
@@ -444,4 +444,3 @@ sub main()
 main();
 
 __END__
-

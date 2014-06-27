@@ -9,16 +9,16 @@ use YAML::Tiny;
 
 our $VERSION = '0.1';
 
-use constant FILE_KNOW_HOSTS => "$ENV{'HOME'}/.ssh/known_hosts";
-use constant FILE_PSSH_CONFIG => "$ENV{'HOME'}/.ssh/pssh_config";
-use constant STR_SEPARATE => '=' x 60;
+use constant FILE_KNOW_HOSTS    => "$ENV{'HOME'}/.ssh/known_hosts";
+use constant FILE_PSSH_CONFIG   => "$ENV{'HOME'}/.ssh/pssh_config";
+use constant STR_SEPARATE       => '=' x 60;
 
-use constant SSH_DEFAULT_PORT => 22;
+use constant SSH_DEFAULT_PORT   => 22;
 
-chomp(my $BIN_SSH = `which ssh`);
-chomp(my $BIN_MOSH = `which mosh`);
-chomp(my $BIN_PING = `which ping`);
-chomp(my $BIN_SCP = `which scp`);
+chomp(my $BIN_SSH   = `which ssh`);
+chomp(my $BIN_MOSH  = `which mosh`);
+chomp(my $BIN_PING  = `which ping`);
+chomp(my $BIN_SCP   = `which scp`);
 
 
 #############################################
@@ -71,13 +71,13 @@ sub parse_cmd($)
             my $cmd = $1;
             $input =~ s/^$cmd\s+//;
 
-            if ($cmd =~ /^m(osh)?$/)	{ $BIN_MOSH }
+            if ($cmd =~ /^m(osh)?$/)    { $BIN_MOSH }
             #elsif ($cmd =~ /^s(sh)?$/) { $BIN_SSH }
             elsif ($cmd =~ /^p(ing)?$/) { $BIN_PING }
-            elsif ($cmd =~ /^scp$/)	{ $BIN_SCP }
-            else			{ $BIN_SSH }
+            elsif ($cmd =~ /^scp$/)     { $BIN_SCP }
+            else                        { $BIN_SSH }
         }
-        else	{ $BIN_SSH }
+        else    { $BIN_SSH }
     };
 
     return ($spawn, $input);
@@ -241,7 +241,11 @@ sub parse_known_hosts()
                 $host = $str;
             }
         }
-        my %hh = ('host' => $host, 'ip' => $ip, 'port' => $port);
+        my %hh = (
+            'host'  => $host,
+            'ip'    => $ip,
+            'port'  => $port
+        );
         push @sites, \%hh;
     }
 }

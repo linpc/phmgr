@@ -3,8 +3,6 @@
 use warnings;
 use strict;
 
-#use YAML::Syck;
-use Data::Dumper;
 use YAML::Tiny;
 
 our $VERSION = '0.1';
@@ -176,7 +174,6 @@ sub classify_sites()
     # collect valid classes
     foreach (keys @$pssh_classes) {
         next if (!exists($pssh_classes->[$_]->{class}) or $pssh_classes->[$_]->{count} == 0);
-        #print Dumper($pssh_classes->[$_]);
         push @pssh_menu, $_;
     }
 
@@ -185,11 +182,6 @@ sub classify_sites()
         next if (%{$sites[$_]->{classes}});
         push @pssh_noclass_sites, $_;
     }
-
-    #print Dumper(@sites);
-    #print Dumper($pssh_config);
-    #print Dumper(@pssh_menu);
-    #print Dumper(@pssh_noclass_sites);
 }
 
 sub config_parse()
@@ -198,14 +190,8 @@ sub config_parse()
     #  the primary reason we use list (instead of hash) in classes is,
     #  user can arrange the listing orders as they can see on menu
 
-    # use YAML::Syck
-    #$pssh_config = LoadFile(FILE_PSSH_CONFIG);
-
-    # use YAML::Tiny
     $pssh_config = (YAML::Tiny->read(FILE_PSSH_CONFIG))->[0];#->{classes};
-    #print Dumper($pssh_config);
 
-    #exit;
     foreach (keys @{$pssh_config->{classes}}) {
         if (!exists($pssh_config->{classes}->[$_]->{class})) {
             # empty element, but still exists
@@ -290,9 +276,6 @@ sub menu_output(@)
             printf "[\e[36m%2d\e[m] %*s%s\n", $i, -36, $host, $sites[$_]->{'ip'};
         }
     }
-
-    # reset menu items counting
-    #$NUM_CHOICES = $i;
 
     ## pclin.140517:
     ##   maybe put config here: want to see those hosts already have class in 1st level menu?
@@ -398,13 +381,12 @@ sub main()
                 }
                 else {
                     # no class item
-                    #($target_host, $target_port) = get_target($sites[$input - @pssh_menu - 1]);
+                    #($target_host, $target_port) = get_target($sites[$input - 1]);
                     my $selection = $pssh_noclass_sites[$input - @pssh_menu - 1];
                     ($target_host, $target_port) = get_target($sites[$selection]);
                 }
             }
 
-            #($target_host, $target_port) = get_target($sites[$input - 1]);
         }
         else {
             ($target_host, $target_port) = try_input_match($input);

@@ -5,7 +5,8 @@ use strict;
 
 use YAML::Tiny;
 
-our $VERSION = '0.1';
+our $VERSION = '0.9';
+our $PUBDATE = '2014 Jun 30';
 
 use constant FILE_KNOW_HOSTS    => "$ENV{'HOME'}/.ssh/known_hosts";
 use constant FILE_PSSH_CONFIG   => "$ENV{'HOME'}/.ssh/pssh_config";
@@ -317,12 +318,25 @@ sub try_input_match($)
 # main rountine
 #############################################
 
-sub main()
+sub main(@)
 {
     my $error_msg = '';
     my $ret;	# used for save subroutine return value and check
     my $class_level = undef;
     my $menu_item_count = 0;
+
+    if (@ARGV > 0 and ($ARGV[0] eq '-v' or $ARGV[0] eq '--version')) {
+	print sprintf 'pssh %s (%s)', $VERSION, $PUBDATE;
+	print "\n",
+	      'Copyright (C) 2014 Po-Chien Lin', "\n",
+	      'License: FreeBSD', "\n";
+
+	if (-e FILE_PSSH_CONFIG) {
+	    print "\n",
+		  'Config: ', FILE_PSSH_CONFIG, "\n";
+	}
+	exit 0;
+    }
 
     # parse known_hosts
     if (! -e FILE_KNOW_HOSTS) {
@@ -427,6 +441,6 @@ sub main()
     }
 }
 
-main();
+main(@ARGV);
 
 __END__

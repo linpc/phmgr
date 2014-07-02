@@ -5,7 +5,7 @@ use strict;
 
 use YAML::Tiny;
 
-our $VERSION = '0.9.1';
+our $VERSION = '0.9.2';
 our $PUBDATE = '2014 Jul 2';
 
 use constant FILE_KNOW_HOSTS    => "$ENV{'HOME'}/.ssh/known_hosts";
@@ -167,19 +167,19 @@ sub classify_sites()
             }
         }
 
-        my @index = grep { exists($sites[$_]->{classes}->{$class_name}) } keys @sites;
+        my @index = grep { exists($sites[$_]->{classes}->{$class_name}) } (0..(@sites - 1));
         $_->{index} = \@index;
         $_->{count} = scalar @index;
     }
 
     # collect valid classes
-    foreach (keys @$pssh_classes) {
+    foreach (0..(@$pssh_classes - 1)) {
         next if (!exists($pssh_classes->[$_]->{class}) or $pssh_classes->[$_]->{count} == 0);
         push @pssh_menu, $_;
     }
 
     # collect un-classfied sites
-    foreach (keys @sites) {
+    foreach (0..(@sites - 1)) {
         next if (exists($sites[$_]->{classes}) and %{$sites[$_]->{classes}});
         push @pssh_noclass_sites, $_;
     }
@@ -193,7 +193,7 @@ sub config_parse()
 
     $pssh_config = (YAML::Tiny->read(FILE_PSSH_CONFIG))->[0];#->{classes};
 
-    foreach (keys @{$pssh_config->{classes}}) {
+    foreach (0..(@{$pssh_config->{classes}} - 1)) {
         if (!exists($pssh_config->{classes}->[$_]->{class})) {
             # empty element, but still exists
             delete $pssh_config->{classes}->[$_];

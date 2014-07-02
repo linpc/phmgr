@@ -5,8 +5,8 @@ use strict;
 
 use YAML::Tiny;
 
-our $VERSION = '0.9';
-our $PUBDATE = '2014 Jun 30';
+our $VERSION = '0.9.1';
+our $PUBDATE = '2014 Jul 2';
 
 use constant FILE_KNOW_HOSTS    => "$ENV{'HOME'}/.ssh/known_hosts";
 use constant FILE_PSSH_CONFIG   => "$ENV{'HOME'}/.ssh/pssh_config";
@@ -180,7 +180,7 @@ sub classify_sites()
 
     # collect un-classfied sites
     foreach (keys @sites) {
-        next if (%{$sites[$_]->{classes}});
+        next if (exists($sites[$_]->{classes}) and %{$sites[$_]->{classes}});
         push @pssh_noclass_sites, $_;
     }
 }

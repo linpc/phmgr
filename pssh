@@ -167,19 +167,19 @@ sub classify_sites()
             }
         }
 
-        my @index = grep { exists($sites[$_]->{classes}->{$class_name}) } (0..(@sites - 1));
+        my @index = grep { exists($sites[$_]->{classes}->{$class_name}) } (0..$#sites);
         $_->{index} = \@index;
         $_->{count} = scalar @index;
     }
 
     # collect valid classes
-    foreach (0..(@$pssh_classes - 1)) {
+    foreach (0..$#$pssh_classes) {
         next if (!exists($pssh_classes->[$_]->{class}) or $pssh_classes->[$_]->{count} == 0);
         push @pssh_menu, $_;
     }
 
     # collect un-classfied sites
-    foreach (0..(@sites - 1)) {
+    foreach (0..$#sites) {
         next if (exists($sites[$_]->{classes}) and %{$sites[$_]->{classes}});
         push @pssh_noclass_sites, $_;
     }
@@ -193,7 +193,7 @@ sub config_parse()
 
     $pssh_config = (YAML::Tiny->read(FILE_PSSH_CONFIG))->[0];#->{classes};
 
-    foreach (0..(@{$pssh_config->{classes}} - 1)) {
+    foreach (0..$#{$pssh_config->{classes}}) {
         if (!exists($pssh_config->{classes}->[$_]->{class})) {
             # empty element, but still exists
             delete $pssh_config->{classes}->[$_];

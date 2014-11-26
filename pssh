@@ -414,6 +414,8 @@ sub main(@)
                 if ($test_ping != 0) {
                     $error_msg = 'Cannot find matched item.';
                     next;
+                } else {
+                    # TODO: should give a chance to reload menu here
                 }
             }
         }

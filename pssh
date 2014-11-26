@@ -410,7 +410,7 @@ sub main(@)
                 } else {
                     ($target_host, $target_port) = ($input, SSH_DEFAULT_PORT);
                 }
-                my $test_ping = system "ping -c1 ${target_host} >/dev/null 2>&1";
+                my $test_ping = system "${BIN_PING} -c1 ${target_host} >/dev/null 2>&1";
                 if ($test_ping != 0) {
                     $error_msg = 'Cannot find matched item.';
                     next;

@@ -150,6 +150,10 @@ sub classify_sites()
     # for readability
     my $pssh_classes = $pssh_config->{classes};
 
+    # reset
+    @pssh_menu = ();
+    @pssh_noclass_sites = ();
+
     foreach (@$pssh_classes) {
         next if (!exists($_->{class}));
 
@@ -207,6 +211,9 @@ sub parse_known_hosts()
     my @c = <FR>;
     close FR;
     chomp(@c);
+
+    # reset
+    @sites = ();
 
     foreach (@c) {
         next if /^#/;

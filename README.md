@@ -13,7 +13,7 @@ You can quickly select what you want to do after the prompt:
 
     Please input your selection:
 
-by 4 menas:
+by four menas:
 
 1. quick connect to `item 2` in the menu using `ssh`
 
